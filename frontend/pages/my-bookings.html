@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Bookings - LPG Booking System</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Config file for API URLs -->
+    <script src="../config.js"></script>
+    <style>
+        .bookings-container {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .bookings-container h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #2c3e50;
+        }
+        
+        .bookings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .booking-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #3498db;
+        }
+        
+        .booking-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .booking-id {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .booking-date {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .booking-details p {
+            margin: 0.5rem 0;
+        }
+        
+        .cylinder-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .amount {
+            font-size: 1.3rem;
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-confirmed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-delivered {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .no-bookings {
+            text-align: center;
+            padding: 3rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .no-bookings p {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            margin-bottom: 1.5rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.2rem;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <i class="fas fa-fire" style="font-size: 2rem; color: #e74c3c;"></i>
+                <span style="font-weight: bold; font-size: 1.3rem;">LPG Booking</span>
+            </div>
+            <ul class="nav-menu" id="navMenu"></ul>
+        </div>
+    </nav>
+
+    <main>
+        <div class="bookings-container">
+            <h2>My Bookings</h2>
+            <div id="bookingsList" class="bookings-grid">
+                <div class="loading">Loading your bookings...</div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 LPG Booking System. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Check if user is logged in
+        const user = JSON.parse(localStorage.getItem('user'));
+        
+        if (!user) {
+            window.location.href = 'login.html';
+        }
+        
+        // Update navigation
+        function updateNavigation() {
+            const navMenu = document.getElementById('navMenu');
+            navMenu.innerHTML = `
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="my-bookings.html" class="active">My Bookings</a></li>
+                <li><a href="#">Welcome, ${user.name}</a></li>
+                <li><a href="#" onclick="logout()">Logout</a></li>
+            `;
+        }
+        
+        // Fetch and display bookings
+        async function loadBookings() {
+            try {
+                // Use dynamic API URL from config.js
+                const response = await fetch(`${window.API_URL}/my-bookings/${user.id}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayBookings(data.bookings);
+                } else {
+                    document.getElementById('bookingsList').innerHTML = `
+                        <div class="no-bookings">
+                            <p>Error loading bookings: ${data.message}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('bookingsList').innerHTML = `
+                    <div class="no-bookings">
+                        <p>Error connecting to server. Make sure backend is running!</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Display bookings
+        function displayBookings(bookings) {
+            const container = document.getElementById('bookingsList');
+            
+            if (bookings.length === 0) {
+                container.innerHTML = `
+                    <div class="no-bookings">
+                        <p>You haven't made any bookings yet.</p>
+                        <a href="../index.html" class="btn btn-primary">Book Now</a>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            bookings.forEach(booking => {
+                const date = new Date(booking.booking_date).toLocaleDateString();
+                let statusClass = 'status-pending';
+                if (booking.booking_status === 'confirmed') statusClass = 'status-confirmed';
+                if (booking.booking_status === 'delivered') statusClass = 'status-delivered';
+                if (booking.booking_status === 'cancelled') statusClass = 'status-cancelled';
+                
+                const card = document.createElement('div');
+                card.className = 'booking-card';
+                
+                let cancelButton = '';
+                if (booking.booking_status === 'pending') {
+                    cancelButton = `
+                        <button onclick="cancelBooking(${booking.booking_id})" 
+                                style="margin-top: 1rem; padding: 0.5rem; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%;">
+                            Cancel Booking
+                        </button>
+                    `;
+                }
+                
+                card.innerHTML = `
+                    <div class="booking-header">
+                        <span class="booking-id">Booking #${booking.booking_id}</span>
+                        <span class="booking-date">${date}</span>
+                    </div>
+                    <div class="booking-details">
+                        <p class="cylinder-name">${booking.name} (${booking.size_kg}kg)</p>
+                        <p>Quantity: ${booking.quantity}</p>
+                        <p class="amount">₹${booking.total_amount}</p>
+                        <p><strong>Delivery Address:</strong> ${booking.delivery_address}</p>
+                        <p><strong>Payment:</strong> ${booking.payment_method} (${booking.payment_status})</p>
+                        ${booking.transaction_id ? `<p><strong>Transaction ID:</strong> ${booking.transaction_id}</p>` : ''}
+                        ${booking.delivery_date ? `<p><strong>Delivery Date:</strong> ${new Date(booking.delivery_date).toLocaleDateString()}</p>` : ''}
+                        ${booking.special_instructions ? `<p><strong>Instructions:</strong> ${booking.special_instructions}</p>` : ''}
+                        <p><span class="status ${statusClass}">${booking.booking_status}</span></p>
+                        ${cancelButton}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+        
+        // Cancel booking
+        async function cancelBooking(bookingId) {
+            if (!confirm('Are you sure you want to cancel this booking?')) return;
+            
+            try {
+                // Use dynamic API URL from config.js
+                const response = await fetch(`${window.API_URL}/cancel-booking/${bookingId}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({userId: user.id})
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Booking cancelled successfully');
+                    loadBookings();
+                } else {
+                    alert('Failed to cancel: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error cancelling booking');
+                console.error(error);
+            }
+        }
+        
+        // Logout
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '../index.html';
+        }
+        
+        updateNavigation();
+        loadBookings();
+    </script>
+    <!-- Chatbot Widget -->
+    <script src="../chat-widget.js"></script>
+</body>
+</html>

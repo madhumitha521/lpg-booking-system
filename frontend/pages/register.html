@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - LPG Booking System</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Config file for API URLs -->
+    <script src="../config.js"></script>
+    <style>
+        .auth-container {
+            min-height: calc(100vh - 200px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: #f5f5f5;
+        }
+        
+        .auth-box {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 450px;
+        }
+        
+        .auth-box h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #2c3e50;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .btn-block {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+        }
+        
+        .auth-link {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        
+        .auth-link a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <i class="fas fa-fire" style="font-size: 2rem; color: #e74c3c;"></i>
+                <span style="font-weight: bold; font-size: 1.3rem;">LPG Booking</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="login.html">Login</a></li>
+                <li><a href="register.html" class="active">Register</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <div class="auth-container">
+            <div class="auth-box">
+                <h2>Create New Account</h2>
+                
+                <div id="alert" class="alert"></div>
+                
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="fullName">Full Name</label>
+                        <input type="text" id="fullName" name="fullName" required 
+                               placeholder="Enter your full name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" required 
+                               placeholder="example@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" required 
+                               placeholder="10-digit mobile number">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="address">Delivery Address</label>
+                        <textarea id="address" name="address" rows="3" required 
+                                  placeholder="Enter your full address"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required 
+                               placeholder="Choose a password (min 6 characters)">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">
+                        Create Account
+                    </button>
+                </form>
+
+                <p class="auth-link">
+                    Already have an account? <a href="login.html">Login here</a>
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Check if coming from OTP verification
+        const urlParams = new URLSearchParams(window.location.search);
+        const verifiedEmail = urlParams.get('email');
+        if (verifiedEmail) {
+            document.getElementById('email').value = verifiedEmail;
+            document.getElementById('email').readOnly = true;
+        }
+        
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const alertDiv = document.getElementById('alert');
+            const submitBtn = this.querySelector('button[type="submit"]');
+            
+            // Get form data
+            const formData = {
+                fullName: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                password: document.getElementById('password').value
+            };
+            
+            // Simple validation
+            if (formData.password.length < 6) {
+                showAlert('Password must be at least 6 characters', 'error');
+                return;
+            }
+            
+            try {
+                // Disable button
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Registering...';
+                
+                // Send data to backend using dynamic API URL
+                const response = await fetch(`${window.API_URL}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('Registration successful! Redirecting to login...', 'success');
+                    
+                    // Clear form
+                    this.reset();
+                    
+                    // Redirect to login page after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    showAlert(data.message, 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Create Account';
+                }
+                
+            } catch (error) {
+                console.error('Registration error:', error);
+                showAlert('Connection error. Make sure backend is running!', 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Account';
+            }
+        });
+        
+        function showAlert(message, type) {
+            const alertDiv = document.getElementById('alert');
+            alertDiv.textContent = message;
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.style.display = 'block';
+            
+            // Auto hide after 5 seconds for success
+            if (type === 'success') {
+                setTimeout(() => {
+                    alertDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+    </script>
+    <!-- Chatbot Widget -->
+    <script src="../chat-widget.js"></script>
+</body>
+</html>

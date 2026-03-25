@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Login - LPG Booking</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Config file for API URLs -->
+    <script src="../config.js"></script>
+    <style>
+        .otp-container {
+            min-height: calc(100vh - 200px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .otp-box {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .otp-box h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #2c3e50;
+        }
+        
+        .otp-input {
+            width: 100%;
+            padding: 1rem;
+            font-size: 2rem;
+            text-align: center;
+            letter-spacing: 8px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+        
+        .timer {
+            text-align: center;
+            color: #e74c3c;
+            margin: 1rem 0;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .resend-link {
+            text-align: center;
+            color: #3498db;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        
+        .resend-link.disabled {
+            color: #999;
+            cursor: not-allowed;
+            text-decoration: none;
+        }
+        
+        .email-display {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .demo-note {
+            background: #fff3cd;
+            color: #856404;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <i class="fas fa-fire" style="font-size: 2rem; color: #e74c3c;"></i>
+                <span style="font-weight: bold; font-size: 1.3rem;">LPG Booking</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="login.html">Password Login</a></li>
+                <li><a href="register.html">Register</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <div class="otp-container">
+            <div class="otp-box" id="phoneStep">
+                <h2><i class="fas fa-envelope" style="color: #e74c3c;"></i> Login with OTP</h2>
+                
+                <!-- Demo note - remove in production -->
+                <div class="demo-note">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Demo Mode:</strong> OTP will be sent to your email and also shown in console
+                </div>
+                
+                <div id="alert" class="alert" style="display: none;"></div>
+                
+                <form id="emailForm">
+                    <div class="form-group">
+                        <label><i class="fas fa-envelope"></i> Email Address</label>
+                        <input type="email" id="email" class="form-control" 
+                               placeholder="Enter your email" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-paper-plane"></i> Send OTP
+                    </button>
+                </form>
+                
+                <p class="auth-link" style="margin-top: 1rem;">
+                    <a href="login.html"><i class="fas fa-arrow-left"></i> Back to password login</a>
+                </p>
+            </div>
+
+            <div class="otp-box" id="otpStep" style="display: none;">
+                <h2><i class="fas fa-lock" style="color: #e74c3c;"></i> Enter OTP</h2>
+                
+                <div id="otpAlert" class="alert" style="display: none;"></div>
+                
+                <div class="email-display" id="displayEmail"></div>
+                
+                <form id="otpForm">
+                    <input type="text" id="otpCode" class="otp-input" 
+                           maxlength="6" placeholder="000000" required>
+                    
+                    <div class="timer" id="timer">
+                        <i class="fas fa-clock"></i> <span>02:00</span>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-check-circle"></i> Verify & Login
+                    </button>
+                </form>
+                
+                <p class="resend-link" id="resendOTP">
+                    <i class="fas fa-redo-alt"></i> Resend OTP
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let userEmail = '';
+        let timerInterval;
+        let timeLeft = 120; // 2 minutes
+        
+        // Email form submission
+        document.getElementById('emailForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const submitBtn = this.querySelector('button[type="submit"]');
+            
+            if (!email.includes('@')) {
+                showAlert('Please enter a valid email', 'error');
+                return;
+            }
+            
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+                
+                // Use dynamic API URL from config.js
+                const response = await fetch(`${window.API_URL}/send-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    userEmail = email;
+                    document.getElementById('displayEmail').innerHTML = 
+                        `<i class="fas fa-envelope"></i> OTP sent to: <strong>${email}</strong>`;
+                    
+                    document.getElementById('phoneStep').style.display = 'none';
+                    document.getElementById('otpStep').style.display = 'block';
+                    
+                    startTimer();
+                    
+                    // Show success message
+                    showOtpAlert(`📧 OTP sent to your email! Check console for demo.`, 'success');
+                    
+                    // Show OTP in console for demo
+                    console.log(`%c🔐 Demo OTP for ${email}: ${data.debug}`, 'background: #2c3e50; color: #e74c3c; font-size: 16px; padding: 5px;');
+                } else {
+                    showAlert(data.message, 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP';
+                }
+                
+            } catch (error) {
+                console.error('Send OTP error:', error);
+                showAlert('Error sending OTP. Make sure backend is running!', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP';
+            }
+        });
+        
+        // OTP form submission
+        document.getElementById('otpForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const otp = document.getElementById('otpCode').value;
+            const submitBtn = this.querySelector('button[type="submit"]');
+            
+            if (otp.length !== 6) {
+                showOtpAlert('Please enter 6-digit OTP', 'error');
+                return;
+            }
+            
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+                
+                // Use dynamic API URL from config.js
+                const response = await fetch(`${window.API_URL}/verify-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: userEmail, otp })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.isNewUser) {
+                        // New user - redirect to registration
+                        localStorage.setItem('verifiedEmail', userEmail);
+                        showOtpAlert('Email verified! Redirecting to registration...', 'success');
+                        setTimeout(() => {
+                            window.location.href = 'register.html?email=' + encodeURIComponent(userEmail);
+                        }, 2000);
+                    } else {
+                        // Existing user - login
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        
+                        showOtpAlert('Login successful! Redirecting...', 'success');
+                        setTimeout(() => {
+                            window.location.href = '../index.html';
+                        }, 1500);
+                    }
+                } else {
+                    showOtpAlert(data.message, 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Verify & Login';
+                }
+                
+            } catch (error) {
+                console.error('Verify OTP error:', error);
+                showOtpAlert('Verification failed', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Verify & Login';
+            }
+        });
+        
+        // Resend OTP
+        document.getElementById('resendOTP').addEventListener('click', async function() {
+            if (this.classList.contains('disabled')) return;
+            
+            try {
+                // Use dynamic API URL from config.js
+                const response = await fetch(`${window.API_URL}/send-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: userEmail })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resetTimer();
+                    showOtpAlert('📧 New OTP sent to your email!', 'success');
+                    console.log(`%c🔐 New OTP: ${data.debug}`, 'background: #2c3e50; color: #e74c3c; font-size: 16px;');
+                }
+            } catch (error) {
+                console.error('Resend OTP error:', error);
+                showOtpAlert('Failed to resend OTP', 'error');
+            }
+        });
+        
+        // Timer functions
+        function startTimer() {
+            timeLeft = 120;
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('resendOTP').classList.remove('disabled');
+                }
+            }, 1000);
+        }
+        
+        function resetTimer() {
+            clearInterval(timerInterval);
+            document.getElementById('resendOTP').classList.add('disabled');
+            startTimer();
+        }
+        
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.querySelector('#timer span').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function showAlert(message, type) {
+            const alertDiv = document.getElementById('alert');
+            alertDiv.textContent = message;
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.style.display = 'block';
+        }
+        
+        function showOtpAlert(message, type) {
+            const alertDiv = document.getElementById('otpAlert');
+            alertDiv.textContent = message;
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    alertDiv.style.display = 'none';
+                }, 3000);
+            }
+        }
+    </script>
+    <!-- Chatbot Widget -->
+    <script src="../chat-widget.js"></script>
+</body>
+</html>

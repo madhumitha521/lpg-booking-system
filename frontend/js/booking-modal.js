@@ -148,7 +148,8 @@ function showBookingModal(cylinderId, price, cylinderName) {
         }
         
         try {
-            const response = await fetch('http://localhost:5000/api/book', {
+            // ✅ FIXED: Use window.API_URL instead of localhost
+            const response = await fetch(`${window.API_URL}/book`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -177,9 +178,9 @@ function showBookingModal(cylinderId, price, cylinderName) {
                     paymentMessage = 'Payment processed successfully!';
                 }
                 
-               // Show success animation instead of alert
-showSuccessAnimation(data.bookingId, totalAmount);
-closeBookingModal();
+                // Show success animation instead of alert
+                showSuccessAnimation(data.bookingId, totalAmount);
+                closeBookingModal();
             } else {
                 alert('Booking failed: ' + data.message);
             }
@@ -198,6 +199,7 @@ function closeBookingModal() {
         modal.remove();
     }
 }
+
 // Show success animation
 function showSuccessAnimation(bookingId, amount) {
     const successHtml = `

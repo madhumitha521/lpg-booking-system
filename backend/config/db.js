@@ -6,6 +6,11 @@ const pool = mysql.createPool({
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
+    port: process.env.DB_PORT || 4000,
+    ssl: {
+        rejectUnauthorized: false,
+        // TiDB Cloud requires SSL but we can set rejectUnauthorized to false for now
+    },
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
@@ -16,7 +21,7 @@ const promisePool = pool.promise();
 async function testConnection() {
     try {
         const [rows] = await promisePool.query('SELECT 1 + 1 AS solution');
-        console.log('✅ Database connected successfully!');
+        console.log('✅ MySQL Database connected successfully!');
         return true;
     } catch (error) {
         console.error('❌ Database connection failed:', error.message);

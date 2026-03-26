@@ -2,10 +2,11 @@
 const bookingModalScript = document.createElement('script');
 bookingModalScript.src = 'js/booking-modal.js';
 document.head.appendChild(bookingModalScript);
+
 // Fetch cylinders from backend
 async function loadCylinders() {
     try {
-        const response = await fetch('http://localhost:5000/api/test');
+        const response = await fetch(`${window.API_URL}/test`);
         const data = await response.json();
         
         if (data.success) {
@@ -50,7 +51,7 @@ function bookCylinder(cylinderId) {
     }
     
     // Get cylinder details
-    fetch('http://localhost:5000/api/test')
+    fetch(`${window.API_URL}/test`)
         .then(res => res.json())
         .then(data => {
             const cylinder = data.cylinders.find(c => c.cylinder_id === cylinderId);
@@ -62,7 +63,7 @@ function bookCylinder(cylinderId) {
 // Make booking
 async function makeBooking(cylinderId, price, user) {
     try {
-        const response = await fetch('http://localhost:5000/api/book', {
+        const response = await fetch(`${window.API_URL}/book`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

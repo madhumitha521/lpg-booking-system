@@ -7,7 +7,7 @@ const hostname = window.location.hostname;
 // Define API URLs
 const API_URLS = {
     local: 'http://localhost:5000/api',
-    production: 'https://your-backend.onrender.com/api'  // We'll update after Render deployment
+    production: 'https://lpg-booking-api.onrender.com/api'  // ✅ Your actual Render URL
 };
 
 // Auto-detect environment
